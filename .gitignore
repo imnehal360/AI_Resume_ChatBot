@@ -1,0 +1,18 @@
+# dependencies
+node_modules/
+
+# environment variables
+.env
+
+# Google/Gmail auth
+src/config/credentials.json
+src/config/token.json
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
