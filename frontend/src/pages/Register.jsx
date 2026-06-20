@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User, Mail, Lock, Loader2, Briefcase } from 'lucide-react';
 import { GoogleLogin } from "@react-oauth/google";
-import axios from "axios";
+import api from '../api/axios';
 
 const Register = () => {
     const [name, setName] = useState('');
@@ -31,7 +31,7 @@ const Register = () => {
 
     const handleGoogleSuccess = async (credentialResponse) => {
         try {
-            const res = await axios.post("http://localhost:5050/api/auth/oauth-login", {
+            const res = await api.post("/auth/oauth-login", {
                 token: credentialResponse.credential,
             });
 
