@@ -1,18 +1,14 @@
-# dependencies
+# Dependency directories
 node_modules/
 
-# environment variables
+# Environment files
 .env
-
-# Google/Gmail auth
-src/config/credentials.json
-src/config/token.json
-
-# logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+.env.local
+.env.*.local
 
 # OS files
 .DS_Store
-Thumbs.db
+
+# IDEs and editors
+.vscode/
+.idea/
