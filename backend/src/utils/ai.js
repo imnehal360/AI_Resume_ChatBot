@@ -42,10 +42,32 @@ function safeParseJSON(text) {
 
 exports.extractResumeFromChat = async (chatMessage, existingResume = {}, chatHistory = []) => {
   // Convert chat history to Gemini format
-  const history = chatHistory.map(msg => ({
+  let rawHistory = chatHistory.map(msg => ({
     role: msg.role === "ai" ? "model" : "user",
     parts: [{ text: msg.text }]
   }));
+
+  // Gemini history rules:
+  // 1. Must start with a 'user' message.
+  const firstUserIndex = rawHistory.findIndex(msg => msg.role === "user");
+  let history = firstUserIndex !== -1 ? rawHistory.slice(firstUserIndex) : [];
+
+  // 2. Roles must strictly alternate (user, model, user, model...).
+  // If there are duplicates, we merge their text content.
+  const alternatedHistory = [];
+  for (const msg of history) {
+    if (alternatedHistory.length === 0) {
+      alternatedHistory.push(msg);
+    } else {
+      const lastMsg = alternatedHistory[alternatedHistory.length - 1];
+      if (lastMsg.role === msg.role) {
+        lastMsg.parts[0].text += "\n" + msg.parts[0].text;
+      } else {
+        alternatedHistory.push(msg);
+      }
+    }
+  }
+  history = alternatedHistory;
 
   const systemInstruction = `You are an expert Resume Assistant AI.
 Role: Hybrid executioner and advisor.
