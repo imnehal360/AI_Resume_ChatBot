@@ -82,15 +82,38 @@ exports.chatResume = async (req, res) => {
     if (!resume) {
       resume = new Resume({ userId, ...extracted });
     } else {
-      // Deep merge personalDetails
+      // Deep merge personalDetails if present and not empty
       if (extracted.personalDetails) {
         resume.personalDetails = {
           ...resume.personalDetails,
           ...extracted.personalDetails
         };
-        delete extracted.personalDetails; // Prevent overwrite by Object.assign below
       }
-      Object.assign(resume, extracted);
+
+      // Update basic fields if they are provided and non-empty
+      if (extracted.summary) {
+        resume.summary = extracted.summary;
+      }
+      if (typeof extracted.atsScore === "number") {
+        resume.atsScore = extracted.atsScore;
+      }
+
+      // Update arrays ONLY if they have items (otherwise preserve existing arrays)
+      if (extracted.skills && extracted.skills.length > 0) {
+        resume.skills = extracted.skills;
+      }
+      if (extracted.experience && extracted.experience.length > 0) {
+        resume.experience = extracted.experience;
+      }
+      if (extracted.projects && extracted.projects.length > 0) {
+        resume.projects = extracted.projects;
+      }
+      if (extracted.education && extracted.education.length > 0) {
+        resume.education = extracted.education;
+      }
+      if (extracted.achievements && extracted.achievements.length > 0) {
+        resume.achievements = extracted.achievements;
+      }
     }
 
     // Capture the AI's chat response BEFORE we delete it from the object
@@ -99,12 +122,6 @@ exports.chatResume = async (req, res) => {
     // Remove non-schema fields before saving (like chat_response)
     if (resume.chat_response) delete resume.chat_response;
     if (extracted.chat_response) delete extracted.chat_response;
-
-    // Skills handling
-    const newSkills = extracted.skills || [];
-    const oldSkills = resume.skills || [];
-    const mergedSkills = [...new Set([...oldSkills, ...newSkills].map(s => String(s).trim()))];
-    resume.skills = mergedSkills;
 
     await resume.save();
 

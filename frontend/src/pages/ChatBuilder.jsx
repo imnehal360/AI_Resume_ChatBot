@@ -253,8 +253,11 @@ const ChatBuilder = () => {
                         <div className="space-y-6">
                             {/* Header */}
                             <div className="border-b pb-4">
-                                <h1 className="text-2xl font-bold uppercase">{resume.summary?.split(' ').slice(0, 2).join(' ') || "YOUR NAME"}</h1>
-                                <p className="text-gray-500 text-sm mt-1">{resume.email || "email@example.com"} | {resume.phone || "(555) 123-4567"}</p>
+                                <h1 className="text-2xl font-bold uppercase">{resume.personalDetails?.name || "YOUR NAME"}</h1>
+                                <p className="text-gray-500 text-sm mt-1">
+                                    {resume.personalDetails?.email || "email@example.com"}
+                                    {resume.personalDetails?.phone && ` | ${resume.personalDetails.phone}`}
+                                </p>
                             </div>
 
                             {/* Summary */}
