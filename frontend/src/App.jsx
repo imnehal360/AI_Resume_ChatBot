@@ -11,6 +11,9 @@ import Dashboard from './pages/Dashboard';
 import ChatBuilder from './pages/ChatBuilder';
 import JobRecommendations from './pages/JobRecommendations';
 import Profile from './pages/Profile';
+import About from './pages/About';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 
 function App() {
   return (
@@ -23,6 +26,9 @@ function App() {
                 <Route index element={<Home />} />
                 <Route path="login" element={<Login />} />
                 <Route path="register" element={<Register />} />
+                <Route path="about" element={<About />} />
+                <Route path="privacy" element={<Privacy />} />
+                <Route path="terms" element={<Terms />} />
 
                 <Route path="dashboard" element={
                   <ProtectedRoute>
