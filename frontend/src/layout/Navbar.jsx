@@ -23,18 +23,22 @@ const Navbar = () => {
             </div>
 
             <div className="flex items-center gap-8">
-                <Link to="/dashboard" className="text-sm font-medium hover:text-gray-600 transition-colors relative group">
-                    Dashboard
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-zinc-900 transition-all group-hover:w-full"></span>
-                </Link>
-                <Link to="/chat" className="text-sm font-medium hover:text-gray-600 transition-colors relative group">
-                    Chat Builder
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-zinc-900 transition-all group-hover:w-full"></span>
-                </Link>
-                <Link to="/profile" className="text-sm font-medium hover:text-gray-600 transition-colors relative group">
-                    Profile
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-zinc-900 transition-all group-hover:w-full"></span>
-                </Link>
+                {user && (
+                    <>
+                        <Link to="/dashboard" className="text-sm font-medium hover:text-gray-600 transition-colors relative group">
+                            Dashboard
+                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-zinc-900 transition-all group-hover:w-full"></span>
+                        </Link>
+                        <Link to="/chat" className="text-sm font-medium hover:text-gray-600 transition-colors relative group">
+                            Chat Builder
+                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-zinc-900 transition-all group-hover:w-full"></span>
+                        </Link>
+                        <Link to="/profile" className="text-sm font-medium hover:text-gray-600 transition-colors relative group">
+                            Profile
+                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-zinc-900 transition-all group-hover:w-full"></span>
+                        </Link>
+                    </>
+                )}
                 {user ? (
                     <button
                         onClick={handleLogout}

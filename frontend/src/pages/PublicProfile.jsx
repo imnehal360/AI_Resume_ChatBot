@@ -1,64 +1,38 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { useAuth } from '../context/AuthContext';
 import {
     User, Mail, Phone, MapPin, Briefcase, GraduationCap,
-    Code, Award, UserCheck, Star, PenTool, MessageSquare, Sparkles,
-    Globe, Copy, Check
+    Code, Award, UserCheck, Star, PenTool, Sparkles, AlertCircle
 } from 'lucide-react';
 
-const Profile = () => {
-    const { user } = useAuth();
+const PublicProfile = () => {
+    const { shareId } = useParams();
     const navigate = useNavigate();
     const [resume, setResume] = useState(null);
     const [loading, setLoading] = useState(true);
-
-    const [isPublic, setIsPublic] = useState(false);
-    const [shareId, setShareId] = useState("");
-    const [sharingLoading, setSharingLoading] = useState(false);
-    const [copied, setCopied] = useState(false);
+    const [error, setError] = useState(false);
 
     useEffect(() => {
-        const fetchResume = async () => {
+        const fetchPublicResume = async () => {
             try {
-                const res = await api.get('/resume');
+                const res = await api.get(`/resume/public/${shareId}`);
                 setResume(res.data.resume);
-                setIsPublic(res.data.resume?.isPublic || false);
-                setShareId(res.data.resume?.shareId || "");
-            } catch (error) {
-                console.error("Failed to fetch resume profile", error);
+            } catch (err) {
+                console.error("Failed to fetch public resume profile", err);
+                setError(true);
             } finally {
                 setLoading(false);
             }
         };
 
-        if (user) fetchResume();
-    }, [user]);
-
-    const toggleSharing = async () => {
-        setSharingLoading(true);
-        try {
-            const nextStatus = !isPublic;
-            const res = await api.post('/resume/share-settings', { isPublic: nextStatus });
-            setIsPublic(res.data.isPublic);
-            setShareId(res.data.shareId || "");
-        } catch (error) {
-            console.error("Failed to update sharing settings", error);
-        } finally {
-            setSharingLoading(false);
+        if (shareId) {
+            fetchPublicResume();
+        } else {
+            setError(true);
+            setLoading(false);
         }
-    };
-
-    const getShareUrl = () => {
-        return `${window.location.origin}/public-profile/${shareId}`;
-    };
-
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText(getShareUrl());
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
+    }, [shareId]);
 
     // Calculate Total Experience Helper
     const totalExperience = useMemo(() => {
@@ -77,22 +51,29 @@ const Profile = () => {
         );
     }
 
-    if (!resume) {
+    if (error || !resume) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-gray-50/50">
-                <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
-                    <User size={32} />
+            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-gray-50/50 animate-in fade-in duration-500">
+                <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
+                    <AlertCircle size={32} />
                 </div>
-                <h2 className="text-2xl font-bold mb-2">No Profile Found</h2>
-                <p className="text-gray-500 mb-6 max-w-md">Start chatting with the AI to build your professional profile and resume!</p>
-                <button onClick={() => navigate('/chat')} className="bg-black text-white px-6 py-2 rounded-full font-medium hover:bg-gray-800 transition-colors">
-                    Go to Chat Builder
+                <h2 className="text-2xl font-bold mb-2 text-gray-900">Profile Not Found or Private</h2>
+                <p className="text-gray-500 mb-6 max-w-md">
+                    The profile you are trying to access does not exist, or the owner has disabled public link sharing.
+                </p>
+                <button
+                    onClick={() => navigate('/')}
+                    className="bg-black text-white px-6 py-2.5 rounded-full font-medium hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200"
+                >
+                    Go to Homepage
                 </button>
             </div>
         );
     }
 
-    const avatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${user?.name || user?.email}`;
+    // Dicebear avatar using name fallback
+    const avatarName = resume.personalDetails?.name || "Professional";
+    const avatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${avatarName}`;
 
     return (
         <div className="min-h-screen bg-gray-50/30 p-4 md:p-8 animate-in fade-in duration-500">
@@ -112,7 +93,7 @@ const Profile = () => {
 
                     <div className="flex-1 text-center md:text-left relative z-10">
                         <h1 className="text-4xl font-bold mb-2 text-gray-900">
-                            {resume.personalDetails?.name || user.name || "User"}
+                            {resume.personalDetails?.name || "Professional Profile"}
                         </h1>
                         <p className="text-xl text-gray-500 font-medium mb-4 flex items-center justify-center md:justify-start gap-2">
                             {resume.experience?.[0]?.role || "Aspiring Professional"}
@@ -131,70 +112,6 @@ const Profile = () => {
                             )}
                         </div>
                     </div>
-
-                    <div className="relative z-10 flex flex-col gap-3 min-w-[160px]">
-                        <button
-                            onClick={() => navigate('/chat')}
-                            className="bg-black text-white px-5 py-3 rounded-2xl text-sm font-medium hover:bg-gray-800 hover:scale-105 transition-all flex items-center justify-center gap-2 shadow-xl shadow-gray-200"
-                        >
-                            <MessageSquare size={18} /> Update with AI
-                        </button>
-
-                        <div className="bg-gray-50 border border-gray-200 p-3 rounded-2xl text-center">
-                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">ATS Score</p>
-                            <p className="text-2xl font-black text-black">{resume.atsScore || 0}</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Sharing Settings Card */}
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div>
-                            <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900">
-                                <Globe size={20} className="text-black" /> Public Profile Sharing
-                            </h3>
-                            <p className="text-sm text-gray-500 mt-1">
-                                Enable this to let anyone view your professional profile without logging in.
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <span className="text-sm font-medium text-gray-700">
-                                {isPublic ? "Public" : "Private"}
-                            </span>
-                            <button
-                                onClick={toggleSharing}
-                                disabled={sharingLoading}
-                                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                                    isPublic ? "bg-black" : "bg-gray-200"
-                                }`}
-                            >
-                                <span
-                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                        isPublic ? "translate-x-5" : "translate-x-0"
-                                    }`}
-                                />
-                            </button>
-                        </div>
-                    </div>
-
-                    {isPublic && shareId && (
-                        <div className="mt-4 p-4 bg-gray-50 rounded-2xl border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 animate-in fade-in duration-300">
-                            <input
-                                type="text"
-                                readOnly
-                                value={getShareUrl()}
-                                className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-600 focus:outline-none"
-                            />
-                            <button
-                                onClick={copyToClipboard}
-                                className="bg-black hover:bg-gray-800 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5 shrink-0"
-                            >
-                                {copied ? <Check size={16} /> : <Copy size={16} />}
-                                {copied ? "Copied!" : "Copy Link"}
-                            </button>
-                        </div>
-                    )}
                 </div>
 
                 {/* Main Grid */}
@@ -230,7 +147,7 @@ const Profile = () => {
                             </div>
                         </div>
 
-                        {/* Skills Cloud - Enhanced */}
+                        {/* Skills Cloud */}
                         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
                             <h3 className="font-bold mb-4 flex items-center gap-2 text-gray-800"><Code className="text-black" size={18} /> Expertise</h3>
                             <div className="flex flex-wrap gap-2">
@@ -239,7 +156,7 @@ const Profile = () => {
                                         {skill}
                                     </span>
                                 ))}
-                                {(!resume.skills || resume.skills.length === 0) && <p className="text-gray-400 text-sm">No skills added yet.</p>}
+                                {(!resume.skills || resume.skills.length === 0) && <p className="text-gray-400 text-sm">No skills listed.</p>}
                             </div>
                         </div>
 
@@ -247,7 +164,7 @@ const Profile = () => {
                         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
                             <h3 className="font-bold mb-4 flex items-center gap-2"><UserCheck className="text-black" size={20} /> Summary</h3>
                             <p className="text-sm text-gray-600 leading-relaxed">
-                                {resume.summary || "Your professional summary will appear here once you describe yourself in the chat."}
+                                {resume.summary || "No professional summary provided."}
                             </p>
                         </div>
                     </div>
@@ -271,7 +188,7 @@ const Profile = () => {
                                         </div>
                                     </div>
                                 ))}
-                                {(!resume.experience || resume.experience.length === 0) && <p className="pl-12 text-gray-400 italic">No experience added.</p>}
+                                {(!resume.experience || resume.experience.length === 0) && <p className="pl-12 text-gray-400 italic">No experience listed.</p>}
                             </div>
                         </div>
 
@@ -293,7 +210,7 @@ const Profile = () => {
                                     </div>
                                 ))}
                             </div>
-                            {(!resume.projects || resume.projects.length === 0) && <p className="text-gray-400 italic">No projects added.</p>}
+                            {(!resume.projects || resume.projects.length === 0) && <p className="text-gray-400 italic">No projects listed.</p>}
                         </div>
 
                         {/* Education */}
@@ -315,15 +232,35 @@ const Profile = () => {
                                         </div>
                                     </div>
                                 ))}
-                                {(!resume.education || resume.education.length === 0) && <p className="text-gray-400 italic">No education added.</p>}
+                                {(!resume.education || resume.education.length === 0) && <p className="text-gray-400 italic">No education listed.</p>}
                             </div>
                         </div>
 
                     </div>
                 </div>
+
+                {/* Call-to-Action Banner */}
+                <div className="bg-black text-white rounded-3xl p-8 md:p-12 text-center relative overflow-hidden shadow-xl shadow-zinc-200">
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-800 via-black to-black opacity-60"></div>
+                    <div className="relative z-10 max-w-2xl mx-auto space-y-4">
+                        <h2 className="text-3xl font-extrabold tracking-tight">Create Your Own AI-Powered Professional Profile</h2>
+                        <p className="text-zinc-400 text-sm md:text-base">
+                            ResJo AI helps you craft an optimized resume, check ATS scores, and find matched job recommendations in minutes.
+                        </p>
+                        <div className="pt-4">
+                            <button
+                                onClick={() => navigate('/register')}
+                                className="bg-white text-black hover:bg-zinc-100 font-bold px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
+                            >
+                                Get Started Free
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     );
 };
 
-export default Profile;
+export default PublicProfile;

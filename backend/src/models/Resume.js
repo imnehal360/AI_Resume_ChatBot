@@ -18,7 +18,10 @@ const resumeSchema = new mongoose.Schema(
     experience: Array,
     achievements: Array,
 
-    atsScore: Number
+    atsScore: Number,
+
+    isPublic: { type: Boolean, default: false },
+    shareId: { type: String, unique: true, sparse: true }
   },
   { timestamps: true }
 );

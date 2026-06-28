@@ -13,6 +13,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const ChatBuilder = lazy(() => import('./pages/ChatBuilder'));
 const JobRecommendations = lazy(() => import('./pages/JobRecommendations'));
 const Profile = lazy(() => import('./pages/Profile'));
+const PublicProfile = lazy(() => import('./pages/PublicProfile'));
 const About = lazy(() => import('./pages/About'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Terms = lazy(() => import('./pages/Terms'));
@@ -31,6 +32,7 @@ function App() {
                 <Route path="about" element={<About />} />
                 <Route path="privacy" element={<Privacy />} />
                 <Route path="terms" element={<Terms />} />
+                <Route path="public-profile/:shareId" element={<PublicProfile />} />
 
                 <Route path="dashboard" element={
                   <ProtectedRoute>

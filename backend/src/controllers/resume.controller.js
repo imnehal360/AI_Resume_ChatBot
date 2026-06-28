@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const Resume = require("../models/Resume");
 const Chat = require("../models/Chat");
 const { normalizeResume } = require("../utils/normalize");
@@ -261,6 +262,56 @@ exports.getResume = async (req, res) => {
     res.json({ resume });
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch resume", error: err.message });
+  }
+};
+
+exports.toggleShareSettings = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { isPublic } = req.body;
+
+    let resume = await Resume.findOne({ userId });
+    if (!resume) {
+      return res.status(404).json({ message: "Resume not found. Please create a resume first." });
+    }
+
+    resume.isPublic = !!isPublic;
+
+    // Generate a unique shareId if one doesn't exist and the user is enabling public sharing
+    if (resume.isPublic && !resume.shareId) {
+      resume.shareId = crypto.randomBytes(6).toString("hex");
+    }
+
+    await resume.save();
+
+    res.json({
+      message: `Resume sharing ${resume.isPublic ? "enabled" : "disabled"}`,
+      isPublic: resume.isPublic,
+      shareId: resume.shareId
+    });
+  } catch (err) {
+    console.error("Error toggling share settings:", err);
+    res.status(500).json({ message: "Failed to update share settings", error: err.message });
+  }
+};
+
+exports.getPublicResume = async (req, res) => {
+  try {
+    const { shareId } = req.params;
+
+    const resume = await Resume.findOne({ shareId, isPublic: true });
+    if (!resume) {
+      return res.status(404).json({ message: "Profile not found or is private" });
+    }
+
+    // Return the resume data but omit sensitive or unnecessary fields (like userId)
+    const resumeData = resume.toObject();
+    delete resumeData.userId;
+
+    res.json({ resume: resumeData });
+  } catch (err) {
+    console.error("Error fetching public resume:", err);
+    res.status(500).json({ message: "Failed to fetch public resume", error: err.message });
   }
 };
 
