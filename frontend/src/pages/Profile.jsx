@@ -200,6 +200,14 @@ const Profile = () => {
                 {/* Main Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
+                    {/* Professional Summary - Full Width */}
+                    <div className="lg:col-span-3 bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
+                        <h3 className="font-bold mb-4 flex items-center gap-2 text-gray-900"><UserCheck className="text-black" size={20} /> Professional Summary</h3>
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                            {resume.summary || "Your professional summary will appear here once you describe yourself in the chat."}
+                        </p>
+                    </div>
+
                     {/* Left Column: Key Stats & Skills */}
                     <div className="space-y-6">
                         {/* Visual Stats Grid */}
@@ -241,14 +249,6 @@ const Profile = () => {
                                 ))}
                                 {(!resume.skills || resume.skills.length === 0) && <p className="text-gray-400 text-sm">No skills added yet.</p>}
                             </div>
-                        </div>
-
-                        {/* Summary */}
-                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200">
-                            <h3 className="font-bold mb-4 flex items-center gap-2"><UserCheck className="text-black" size={20} /> Summary</h3>
-                            <p className="text-sm text-gray-600 leading-relaxed">
-                                {resume.summary || "Your professional summary will appear here once you describe yourself in the chat."}
-                            </p>
                         </div>
                     </div>
 
