@@ -115,7 +115,12 @@ async function sendDigestToUser(user) {
 
 // ─── Send digest to ALL eligible users ────────────────────────────────────────
 exports.sendDailyDigestToAllUsers = async () => {
-  const users = await User.find({ emailNotifications: true });
+  const users = await User.find({
+    $or: [
+      { emailNotifications: true },
+      { emailNotifications: { $exists: false } }
+    ]
+  });
 
   if (!users.length) {
     console.log("[EmailDigest] No users with email notifications enabled.");

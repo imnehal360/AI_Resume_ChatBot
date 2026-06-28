@@ -1,26 +1,39 @@
 const cron = require("node-cron");
-const { ingestJobsFromJSearch } = require("../services/jobIngestion.service");
-const { sendDailyDigestToAllUsers } = require("../services/emailDigest.service");
+const { searchAllJobs } = require("../services/jobSearch.service");
+const { sendJobsToProjectEmail } = require("../services/jobEmailSender.service");
+const { ingestJobsFromProjectInbox } = require("../services/jobEmailIngestion.service");
 
-// Schedule: Run every day at 8:00 AM
-cron.schedule("0 8 * * *", async () => {
-  console.log("[Cron] ⏰ Starting daily remote tech job pipeline...");
-
+// 1. Scheduled Job Search: Run every 72 hours (every 3rd day at midnight)
+cron.schedule("0 0 */3 * *", async () => {
+  console.log("[Cron] ⏰ Starting automated job search & email export pipeline (every 72h)...");
   try {
-    // Step 1: Fetch fresh remote tech jobs from JSearch (last 72 hours)
-    const result = await ingestJobsFromJSearch();
-    console.log(
-      `[Cron] ✅ JSearch ingestion complete — inserted: ${result.inserted}, skipped: ${result.skipped}`
-    );
-
-    // Step 2: Send personalized job digest email to all users
-    console.log("[Cron] 📧 Sending personalized job digests...");
-    await sendDailyDigestToAllUsers();
-    console.log("[Cron] ✅ Daily digests sent successfully.");
-
+    const jobs = await searchAllJobs("software developer", "Remote");
+    console.log(`[Cron] 🔎 Found ${jobs.length} jobs to send.`);
+    
+    if (jobs.length > 0) {
+      await sendJobsToProjectEmail(jobs);
+      console.log("[Cron] ✅ Fetch results sent to project email inbox.");
+    } else {
+      console.log("[Cron] ℹ️ No jobs found. Skipping email sending.");
+    }
   } catch (err) {
-    console.error("[Cron] ❌ Daily pipeline failed:", err.message);
+    console.error("[Cron] ❌ Job search / email pipeline failed:", err.message);
   }
 });
 
-console.log("[Cron] 🚀 Daily remote tech job pipeline scheduled at 8:00 AM.");
+// 2. Scheduled Email Ingestion: Run every 12 hours
+cron.schedule("0 */12 * * *", async () => {
+  console.log("[Cron] ⏰ Starting periodic email inbox ingestion (every 12h)...");
+  try {
+    const result = await ingestJobsFromProjectInbox();
+    console.log(
+      `[Cron] ✅ Inbox ingestion complete — Processed emails: ${result.processedEmails}, Inserted jobs: ${result.insertedJobs}, Skipped: ${result.skippedJobs}`
+    );
+  } catch (err) {
+    console.error("[Cron] ❌ Inbox ingestion failed:", err.message);
+  }
+});
+
+console.log("[Cron] 🚀 Automated Job Ingestion Pipeline schedulers registered.");
+console.log("       - Job search & export runs every 72 hours.");
+console.log("       - Email inbox ingestion runs every 12 hours.");

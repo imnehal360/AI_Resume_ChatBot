@@ -55,12 +55,21 @@ exports.recommendJobsForUser = async (userId, experienceLevel) => {
     };
   });
 
-  // ✅ FILTER AFTER MATCHING (KEY FIX)
-  const filtered = experienceLevel
-    ? recommendations.filter(r =>
-      r.job.experienceLevel &&
-      r.job.experienceLevel.toLowerCase() === experienceLevel.toLowerCase()
-    )
+  // ✅ FILTER AFTER MATCHING (KEY FIX: mapped roles to job experience levels)
+  const targetExp = experienceLevel ? experienceLevel.toLowerCase().trim() : null;
+  const filtered = targetExp
+    ? recommendations.filter(r => {
+        if (!r.job.experienceLevel) return false;
+        const jobExp = r.job.experienceLevel.toLowerCase().trim();
+
+        if (targetExp === "student") {
+          return jobExp === "intern" || jobExp === "fresher";
+        }
+        if (targetExp === "fresher") {
+          return jobExp === "fresher" || jobExp === "intern";
+        }
+        return jobExp === targetExp;
+      })
     : recommendations;
 
   const final = filtered

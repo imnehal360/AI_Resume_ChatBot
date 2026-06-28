@@ -1,7 +1,9 @@
 const express = require("express");
 const router = express.Router();
 
-const { ingestJobsFromJSearch, ingestJobsFromPerplexity } = require("../services/jobIngestion.service");
+const { searchAllJobs } = require("../services/jobSearch.service");
+const { sendJobsToProjectEmail } = require("../services/jobEmailSender.service");
+const { ingestJobsFromProjectInbox } = require("../services/jobEmailIngestion.service");
 const { sendDailyDigestToAllUsers } = require("../services/emailDigest.service");
 
 // Simple admin secret middleware
@@ -13,14 +15,43 @@ const adminAuth = (req, res, next) => {
   next();
 };
 
-// POST /admin/ingest-jobs — fetch remote tech jobs from JSearch (72hr, remote)
-router.post("/ingest-jobs", adminAuth, async (req, res) => {
+// POST /admin/search-and-email — trigger job search and send to project email
+router.post("/search-and-email", adminAuth, async (req, res) => {
   try {
-    const result = await ingestJobsFromJSearch();
-    res.json({ message: "JSearch ingestion completed", result });
+    const { keywords = "software developer", location = "Remote" } = req.body;
+    console.log(`[Admin] Triggered manual search-and-email pipeline for keywords: "${keywords}"`);
+    
+    const jobs = await searchAllJobs(keywords, location);
+    if (jobs.length > 0) {
+      await sendJobsToProjectEmail(jobs);
+      return res.json({
+        message: "Job search complete, exported to project email.",
+        count: jobs.length
+      });
+    } else {
+      return res.json({
+        message: "No jobs found during search. No email sent.",
+        count: 0
+      });
+    }
   } catch (err) {
-    console.error("Ingestion error:", err);
-    res.status(500).json({ message: "Job ingestion failed", error: err.message });
+    console.error("[Admin] Search & Email failed:", err);
+    res.status(500).json({ message: "Search & Email pipeline failed", error: err.message });
+  }
+});
+
+// POST /admin/ingest-from-email — read project email and store to MongoDB
+router.post("/ingest-from-email", adminAuth, async (req, res) => {
+  try {
+    console.log("[Admin] Triggered manual email inbox ingestion pipeline.");
+    const result = await ingestJobsFromProjectInbox();
+    res.json({
+      message: "Inbox ingestion completed successfully.",
+      result
+    });
+  } catch (err) {
+    console.error("[Admin] Email ingestion failed:", err);
+    res.status(500).json({ message: "Email ingestion pipeline failed", error: err.message });
   }
 });
 
@@ -32,18 +63,6 @@ router.post("/send-digest", adminAuth, async (req, res) => {
   } catch (err) {
     console.error("Digest error:", err);
     res.status(500).json({ message: "Digest sending failed", error: err.message });
-  }
-});
-
-// POST /admin/run-pipeline — ingest from JSearch + send digest in one call
-router.post("/run-pipeline", adminAuth, async (req, res) => {
-  try {
-    const result = await ingestJobsFromJSearch();
-    await sendDailyDigestToAllUsers();
-    res.json({ message: "Full pipeline complete (JSearch + Digest)", ingestion: result });
-  } catch (err) {
-    console.error("Pipeline error:", err);
-    res.status(500).json({ message: "Pipeline failed", error: err.message });
   }
 });
 

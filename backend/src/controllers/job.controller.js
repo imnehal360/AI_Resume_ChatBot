@@ -1,3 +1,4 @@
+const Job = require("../models/Job");
 const { recommendJobsForUser } = require("../services/jobRecommendation.service");
 
 exports.recommendJobs = async (req, res) => {
@@ -27,5 +28,79 @@ exports.recommendJobs = async (req, res) => {
       message: "Job recommendation failed",
       error: err.message
     });
+  }
+};
+
+exports.getJobs = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      title,
+      location,
+      experienceLevel,
+      jobType,
+      source,
+      search
+    } = req.query;
+
+    const query = {};
+
+    // Specific filters
+    if (title) query.title = new RegExp(title, "i");
+    if (location) query.location = new RegExp(location, "i");
+    if (experienceLevel) query.experienceLevel = experienceLevel;
+    if (jobType) query.jobType = new RegExp(jobType, "i");
+    if (source) query.source = source;
+
+    // Search query match
+    if (search) {
+      query.$or = [
+        { title: new RegExp(search, "i") },
+        { company: new RegExp(search, "i") },
+        { description: new RegExp(search, "i") },
+        { skillsRequired: new RegExp(search, "i") }
+      ];
+    }
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const jobs = await Job.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
+
+    const total = await Job.countDocuments(query);
+
+    return res.json({
+      jobs,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+        totalJobs: total
+      }
+    });
+  } catch (err) {
+    console.error("[JobController] Error fetching jobs:", err.message);
+    return res.status(500).json({ message: "Failed to retrieve jobs", error: err.message });
+  }
+};
+
+exports.getJobById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const job = await Job.findById(id);
+
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    return res.json({ job });
+  } catch (err) {
+    console.error("[JobController] Error fetching job by ID:", err.message);
+    return res.status(500).json({ message: "Failed to retrieve job details", error: err.message });
   }
 };
