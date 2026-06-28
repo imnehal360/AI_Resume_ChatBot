@@ -4,6 +4,7 @@ const Job = require("../models/Job");
 const ProcessedEmail = require("../models/ProcessedEmail");
 const { extractJobsFromText } = require("./ai/jobExtractor.service");
 const crypto = require("crypto");
+const { deleteCachePattern } = require("../config/redis");
 
 // Find attachment part recursively
 function findAttachmentPart(parts) {
@@ -154,6 +155,10 @@ exports.ingestJobsFromProjectInbox = async () => {
     } catch (msgErr) {
       console.error(`[JobEmailIngestion] Error processing email ID ${msg.id}:`, msgErr.message);
     }
+  }
+
+  if (insertedJobs > 0) {
+    await deleteCachePattern("jobs:*");
   }
 
   console.log(`[JobEmailIngestion] Completed: Processed ${processedEmails} emails. Inserted: ${insertedJobs}, Skipped duplicates: ${skippedJobs}`);

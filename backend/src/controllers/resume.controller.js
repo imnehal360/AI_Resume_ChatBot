@@ -5,6 +5,7 @@ const { extractResumeFromChat, analyzeATS, parseResumeText } = require("../utils
 
 const { recommendJobsForUser } = require("../services/jobRecommendation.service");
 const { parseResumePdf } = require("../services/resumeParser.service");
+const { deleteCachePattern } = require("../config/redis");
 
 exports.uploadResume = async (req, res) => {
   try {
@@ -42,6 +43,9 @@ exports.uploadResume = async (req, res) => {
     resume.skills = mergedSkills;
 
     await resume.save();
+
+    // Invalidate user recommendations cache
+    await deleteCachePattern(`recommendations:${userId}:*`);
 
     // Update chat history
     let chat = await Chat.findOne({ userId });
@@ -124,6 +128,9 @@ exports.chatResume = async (req, res) => {
     if (extracted.chat_response) delete extracted.chat_response;
 
     await resume.save();
+
+    // Invalidate user recommendations cache
+    await deleteCachePattern(`recommendations:${userId}:*`);
 
     // --- Chat History Logic ---
     if (!chat) {

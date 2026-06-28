@@ -1,5 +1,6 @@
 const Job = require("../models/Job");
 const { recommendJobsForUser } = require("../services/jobRecommendation.service");
+const { getCache, setCache } = require("../config/redis");
 
 exports.recommendJobs = async (req, res) => {
   try {
@@ -36,13 +37,23 @@ exports.getJobs = async (req, res) => {
     const {
       page = 1,
       limit = 10,
-      title,
-      location,
-      experienceLevel,
-      jobType,
-      source,
-      search
+      title = "",
+      location = "",
+      experienceLevel = "",
+      jobType = "",
+      source = "",
+      search = ""
     } = req.query;
+
+    // Build Cache Key based on query params
+    const cacheKey = `jobs:page=${page}:limit=${limit}:title=${title}:loc=${location}:exp=${experienceLevel}:type=${jobType}:src=${source}:q=${search}`;
+
+    // Try loading from Redis Cache
+    const cachedData = await getCache(cacheKey);
+    if (cachedData) {
+      res.setHeader("X-Cache", "HIT");
+      return res.json(cachedData);
+    }
 
     const query = {};
 
@@ -74,7 +85,7 @@ exports.getJobs = async (req, res) => {
 
     const total = await Job.countDocuments(query);
 
-    return res.json({
+    const responsePayload = {
       jobs,
       pagination: {
         page: pageNum,
@@ -82,7 +93,13 @@ exports.getJobs = async (req, res) => {
         totalPages: Math.ceil(total / limitNum),
         totalJobs: total
       }
-    });
+    };
+
+    // Store in cache for 12 hours (43200 seconds)
+    await setCache(cacheKey, responsePayload, 43200);
+
+    res.setHeader("X-Cache", "MISS");
+    return res.json(responsePayload);
   } catch (err) {
     console.error("[JobController] Error fetching jobs:", err.message);
     return res.status(500).json({ message: "Failed to retrieve jobs", error: err.message });

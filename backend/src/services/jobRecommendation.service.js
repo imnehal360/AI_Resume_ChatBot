@@ -1,5 +1,6 @@
 const Job = require("../models/Job");
 const Resume = require("../models/Resume");
+const { getCache, setCache } = require("../config/redis");
 
 function calculateMatchScore(resumeSkills, jobSkills) {
   const safeResumeSkills = Array.isArray(resumeSkills) ? resumeSkills : [];
@@ -29,6 +30,17 @@ function uniqueSkills(skills) {
 }
 
 exports.recommendJobsForUser = async (userId, experienceLevel) => {
+  const cacheKey = `recommendations:${userId}:${experienceLevel || "all"}`;
+
+  // Try to load from Redis cache
+  const cachedData = await getCache(cacheKey);
+  if (cachedData) {
+    console.log(`[JobRecommendation] ⚡ Cache HIT for recommendations (user: ${userId})`);
+    return cachedData;
+  }
+
+  console.log(`[JobRecommendation] 🔍 Cache MISS for recommendations. Computing matches (user: ${userId})...`);
+
   const resume = await Resume.findOne({ userId });
 
   if (!resume || !Array.isArray(resume.skills) || resume.skills.length === 0) {
@@ -72,6 +84,9 @@ exports.recommendJobsForUser = async (userId, experienceLevel) => {
   const final = recommendations
     .filter(r => r.matchScore > 0)
     .sort((a, b) => b.matchScore - a.matchScore);
+
+  // Cache results for 2 hours (7200 seconds)
+  await setCache(cacheKey, final, 7200);
 
   return final;
 };
