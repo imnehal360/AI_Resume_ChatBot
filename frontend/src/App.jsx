@@ -4,16 +4,18 @@ import { ResumeProvider } from './context/ResumeContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './layout/Layout';
+import React, { lazy } from 'react';
 import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import ChatBuilder from './pages/ChatBuilder';
-import JobRecommendations from './pages/JobRecommendations';
-import Profile from './pages/Profile';
-import About from './pages/About';
-import Privacy from './pages/Privacy';
-import Terms from './pages/Terms';
+
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const ChatBuilder = lazy(() => import('./pages/ChatBuilder'));
+const JobRecommendations = lazy(() => import('./pages/JobRecommendations'));
+const Profile = lazy(() => import('./pages/Profile'));
+const About = lazy(() => import('./pages/About'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+const Terms = lazy(() => import('./pages/Terms'));
 
 function App() {
   return (

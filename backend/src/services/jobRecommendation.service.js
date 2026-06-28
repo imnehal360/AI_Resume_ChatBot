@@ -37,7 +37,21 @@ exports.recommendJobsForUser = async (userId, experienceLevel) => {
 
   const resumeSkills = resume.skills;
 
-  const jobs = await Job.find({});
+  // Build MongoDB query filter based on mapped experienceLevel
+  const query = {};
+  const targetExp = experienceLevel ? experienceLevel.toLowerCase().trim() : null;
+
+  if (targetExp) {
+    if (targetExp === "student") {
+      query.experienceLevel = { $in: ["intern", "fresher"] };
+    } else if (targetExp === "fresher") {
+      query.experienceLevel = { $in: ["fresher", "intern"] };
+    } else {
+      query.experienceLevel = targetExp;
+    }
+  }
+
+  const jobs = await Job.find(query);
   if (!Array.isArray(jobs) || jobs.length === 0) {
     return [];
   }
@@ -55,24 +69,7 @@ exports.recommendJobsForUser = async (userId, experienceLevel) => {
     };
   });
 
-  // ✅ FILTER AFTER MATCHING (KEY FIX: mapped roles to job experience levels)
-  const targetExp = experienceLevel ? experienceLevel.toLowerCase().trim() : null;
-  const filtered = targetExp
-    ? recommendations.filter(r => {
-        if (!r.job.experienceLevel) return false;
-        const jobExp = r.job.experienceLevel.toLowerCase().trim();
-
-        if (targetExp === "student") {
-          return jobExp === "intern" || jobExp === "fresher";
-        }
-        if (targetExp === "fresher") {
-          return jobExp === "fresher" || jobExp === "intern";
-        }
-        return jobExp === targetExp;
-      })
-    : recommendations;
-
-  const final = filtered
+  const final = recommendations
     .filter(r => r.matchScore > 0)
     .sort((a, b) => b.matchScore - a.matchScore);
 
