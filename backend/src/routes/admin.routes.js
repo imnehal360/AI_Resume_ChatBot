@@ -3,7 +3,6 @@ const router = express.Router();
 
 const { searchAllJobs } = require("../services/jobSearch.service");
 const { ingestJobsFromJSearch } = require("../services/jobIngestion.service");
-const { sendDailyDigestToAllUsers } = require("../services/emailDigest.service");
 
 // Simple admin secret middleware
 const adminAuth = (req, res, next) => {

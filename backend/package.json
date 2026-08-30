@@ -26,7 +26,6 @@
     "mongoose": "^9.0.1",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
-    "nodemailer": "^6.9.16",
     "pdf-parse": "^1.1.1"
   },
   "devDependencies": {
