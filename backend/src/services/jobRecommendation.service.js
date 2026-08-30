@@ -1,7 +1,11 @@
 const Job = require("../models/Job");
 const Resume = require("../models/Resume");
+const { generateEmbedding, cosineSimilarity } = require("../utils/embedding");
 
-function calculateMatchScore(resumeSkills, jobSkills) {
+/**
+ * Keyword match score calculation (0 to 100)
+ */
+function calculateKeywordScore(resumeSkills, jobSkills) {
   const safeResumeSkills = Array.isArray(resumeSkills) ? resumeSkills : [];
   const safeJobSkills = Array.isArray(jobSkills) ? jobSkills : [];
 
@@ -14,7 +18,6 @@ function calculateMatchScore(resumeSkills, jobSkills) {
 
   let match = 0;
   for (const jobSkill of jobSet) {
-    // Check if any resume skill partially matches the job skill (or vice versa)
     const isMatch = [...resumeSet].some(resumeSkill =>
       resumeSkill.includes(jobSkill) || jobSkill.includes(resumeSkill)
     );
@@ -28,11 +31,25 @@ function uniqueSkills(skills) {
   return new Set(skills.map(s => String(s).toLowerCase().trim()));
 }
 
+/**
+ * Intelligent Job Recommendation Engine combining Semantic Vector Similarity (70%) + Keyword Match (30%)
+ */
 exports.recommendJobsForUser = async (userId, experienceLevel) => {
   const resume = await Resume.findOne({ userId });
 
   if (!resume || !Array.isArray(resume.skills) || resume.skills.length === 0) {
     return [];
+  }
+
+  // Ensure candidate has a dense vector embedding (generate on the fly if not cached yet)
+  let candidateEmbedding = resume.embedding;
+  if (!Array.isArray(candidateEmbedding) || candidateEmbedding.length === 0) {
+    const resumeText = `${resume.skills?.join(" ")} ${resume.summary || ""} ${JSON.stringify(resume.experience || [])} ${JSON.stringify(resume.projects || [])}`;
+    candidateEmbedding = await generateEmbedding(resumeText);
+    if (candidateEmbedding) {
+      resume.embedding = candidateEmbedding;
+      await resume.save().catch(e => console.warn("[JobRec] Failed saving embedding:", e.message));
+    }
   }
 
   const resumeSkills = resume.skills;
@@ -56,22 +73,43 @@ exports.recommendJobsForUser = async (userId, experienceLevel) => {
     return [];
   }
 
-  const recommendations = jobs.map(job => {
-    const jobSkills = Array.isArray(job.skillsRequired)
-      ? job.skillsRequired
-      : [];
+  const recommendations = [];
 
-    const score = calculateMatchScore(resumeSkills, jobSkills);
+  for (const job of jobs) {
+    const jobSkills = Array.isArray(job.skillsRequired) ? job.skillsRequired : [];
+    
+    // 1. Keyword Score (0 - 100)
+    const keywordScore = calculateKeywordScore(resumeSkills, jobSkills);
 
-    return {
-      job,
-      matchScore: score
-    };
-  });
+    // 2. Semantic Vector Score (0 - 100)
+    let semanticScore = 0;
+    if (Array.isArray(candidateEmbedding) && candidateEmbedding.length > 0 && Array.isArray(job.embedding) && job.embedding.length > 0) {
+      const similarity = cosineSimilarity(candidateEmbedding, job.embedding);
+      // Map cosine similarity (typically 0.3 - 0.9 for related domains) to 0 - 100
+      semanticScore = Math.max(0, Math.min(100, Math.round(similarity * 100)));
+    }
 
-  const final = recommendations
-    .filter(r => r.matchScore > 0)
-    .sort((a, b) => b.matchScore - a.matchScore);
+    // 3. Hybrid Combined Match Score:
+    // If semantic embedding is available: 70% Semantic Vector + 30% Keyword
+    // If embedding is not yet on job document: Fallback 100% Keyword
+    let finalMatchScore = keywordScore;
+    if (semanticScore > 0) {
+      finalMatchScore = Math.round((0.7 * semanticScore) + (0.3 * keywordScore));
+    }
 
-  return final;
+    // Only include relevant jobs with positive match
+    if (finalMatchScore > 10 || keywordScore > 0 || semanticScore > 40) {
+      recommendations.push({
+        job,
+        matchScore: finalMatchScore,
+        semanticScore,
+        keywordScore
+      });
+    }
+  }
+
+  // Sort descending by highest Match Score
+  recommendations.sort((a, b) => b.matchScore - a.matchScore);
+
+  return recommendations;
 };

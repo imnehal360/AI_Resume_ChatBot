@@ -1,6 +1,7 @@
 const Job = require("../models/Job");
 const { normalizeJob } = require("../utils/jobNormalizer");
 const { fetchRemoteTechJobs } = require("./jsearch.service");
+const { generateEmbedding } = require("../utils/embedding");
 
 // ─── PRIMARY: Ingest tech jobs from JSearch RapidAPI (72hr fresh) ─────────────
 exports.ingestJobsFromJSearch = async () => {
@@ -18,6 +19,13 @@ exports.ingestJobsFromJSearch = async () => {
       if (exists) {
         skipped++;
         continue;
+      }
+
+      // Generate semantic embedding from Job description, title, and required skills
+      const embeddingText = `${job.title} ${job.skillsRequired?.join(" ")} ${job.description || ""}`.trim();
+      const embedding = await generateEmbedding(embeddingText);
+      if (embedding) {
+        job.embedding = embedding;
       }
 
       await Job.create(job);

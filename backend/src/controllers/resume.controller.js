@@ -6,6 +6,7 @@ const { extractResumeFromChat, analyzeATS, parseResumeText } = require("../utils
 
 const { recommendJobsForUser } = require("../services/jobRecommendation.service");
 const { parseResumePdf } = require("../services/resumeParser.service");
+const { generateEmbedding } = require("../utils/embedding");
 
 exports.uploadResume = async (req, res) => {
   try {
@@ -41,6 +42,13 @@ exports.uploadResume = async (req, res) => {
     const oldSkills = resume.skills || [];
     const mergedSkills = [...new Set([...oldSkills, ...newSkills].map(s => String(s).trim()))];
     resume.skills = mergedSkills;
+
+    // Generate dense vector embedding for candidate resume
+    const resumeTextForEmbedding = `${resume.skills?.join(" ")} ${resume.summary || ""} ${JSON.stringify(resume.experience || [])} ${JSON.stringify(resume.projects || [])}`;
+    const embedding = await generateEmbedding(resumeTextForEmbedding);
+    if (embedding) {
+      resume.embedding = embedding;
+    }
 
     await resume.save();
 
@@ -123,6 +131,13 @@ exports.chatResume = async (req, res) => {
     // Remove non-schema fields before saving (like chat_response)
     if (resume.chat_response) delete resume.chat_response;
     if (extracted.chat_response) delete extracted.chat_response;
+
+    // Refresh candidate embedding after chat modification
+    const resumeTextForEmbedding = `${resume.skills?.join(" ")} ${resume.summary || ""} ${JSON.stringify(resume.experience || [])} ${JSON.stringify(resume.projects || [])}`;
+    const embedding = await generateEmbedding(resumeTextForEmbedding);
+    if (embedding) {
+      resume.embedding = embedding;
+    }
 
     await resume.save();
 

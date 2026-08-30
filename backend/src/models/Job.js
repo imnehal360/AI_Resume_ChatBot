@@ -19,6 +19,9 @@ const jobSchema = new mongoose.Schema(
     domain: { type: String },
     description: { type: String },
 
+    // Dense vector embedding for semantic matching (3072 dims)
+    embedding: [{ type: Number }],
+
     // metadata
     source: {
       type: String,
