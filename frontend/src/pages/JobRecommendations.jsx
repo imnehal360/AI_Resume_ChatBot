@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
 import { Loader2, Briefcase, MapPin, Building, Trophy, ExternalLink } from 'lucide-react';
-import './JobRecommendations.css';
 
 const JobRecommendations = () => {
     const [jobs, setJobs] = useState([]);

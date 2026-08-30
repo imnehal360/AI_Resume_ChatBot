@@ -104,7 +104,7 @@ const Register = () => {
                                             type="text"
                                             required
                                             className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none bg-gray-50 focus:bg-white transition-all"
-                                            placeholder="John Doe"
+                                            placeholder="Your Name"
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
                                         />
@@ -136,7 +136,7 @@ const Register = () => {
                                         type="email"
                                         required
                                         className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none bg-gray-50 focus:bg-white transition-all"
-                                        placeholder="name@example.com"
+                                        placeholder="name@gmail.com"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                     />

@@ -29,7 +29,7 @@ function detectExperienceLevel(title = "", description = "") {
     titleLower.includes(" sr ")  ||
     titleLower.includes("5+ years") ||
     titleLower.includes("7+ years") ||
-    titleLower.match(/\b(ii|iii|iv)\b/) // e.g. "Engineer III"
+    titleLower.match(/\b(ii|iii|iv)\b/) 
   ) {
     return "professional";
   }
@@ -151,15 +151,16 @@ function mapToJobSchema(job) {
 }
 
 // ─── Fetch jobs for a single query ────────────────────────────────────────────
+
 async function fetchJobsForQuery(query) {
   const options = {
     method: "GET",
     url: JSEARCH_BASE_URL,
     params: {
       query,
-      num_pages: "1",        // 10 results per query
-      date_posted: "3days",  // ✅ Jobs posted within last 72 hours
-      // No remote_jobs_only — get ALL tech jobs (remote, hybrid, onsite)
+      num_pages: "1",        
+      date_posted: "3days",  
+     
     },
     headers: {
       "X-RapidAPI-Key": process.env.RAPIDAPI_KEY,
@@ -178,6 +179,7 @@ async function fetchJobsForQuery(query) {
 }
 
 // ─── Main export: fetch all remote tech jobs from last 72 hours ───────────────
+
 exports.fetchRemoteTechJobs = async () => {
   if (!process.env.RAPIDAPI_KEY) {
     throw new Error(

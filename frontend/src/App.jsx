@@ -17,6 +17,7 @@ const PublicProfile = lazy(() => import('./pages/PublicProfile'));
 const About = lazy(() => import('./pages/About'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Terms = lazy(() => import('./pages/Terms'));
+const Admin = lazy(() => import('./pages/Admin'));
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
                 <Route path="about" element={<About />} />
                 <Route path="privacy" element={<Privacy />} />
                 <Route path="terms" element={<Terms />} />
+                <Route path="admin" element={<Admin />} />
                 <Route path="public-profile/:shareId" element={<PublicProfile />} />
 
                 <Route path="dashboard" element={

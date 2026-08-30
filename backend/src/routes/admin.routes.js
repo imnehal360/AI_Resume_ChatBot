@@ -2,8 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const { searchAllJobs } = require("../services/jobSearch.service");
-const { sendJobsToProjectEmail } = require("../services/jobEmailSender.service");
-const { ingestJobsFromProjectInbox } = require("../services/jobEmailIngestion.service");
+const { ingestJobsFromJSearch } = require("../services/jobIngestion.service");
 const { sendDailyDigestToAllUsers } = require("../services/emailDigest.service");
 
 // Simple admin secret middleware
@@ -15,54 +14,64 @@ const adminAuth = (req, res, next) => {
   next();
 };
 
-// POST /admin/search-and-email — trigger job search and send to project email
-router.post("/search-and-email", adminAuth, async (req, res) => {
+// POST /admin/search-jobs — test JSearch RapidAPI query
+router.post("/search-jobs", adminAuth, async (req, res) => {
   try {
     const { keywords = "software developer", location = "Remote" } = req.body;
-    console.log(`[Admin] Triggered manual search-and-email pipeline for keywords: "${keywords}"`);
+    console.log(`[Admin] Triggered manual search for keywords: "${keywords}"`);
     
     const jobs = await searchAllJobs(keywords, location);
-    if (jobs.length > 0) {
-      await sendJobsToProjectEmail(jobs);
-      return res.json({
-        message: "Job search complete, exported to project email.",
-        count: jobs.length
-      });
-    } else {
-      return res.json({
-        message: "No jobs found during search. No email sent.",
-        count: 0
-      });
-    }
+    return res.json({
+      message: "Job search complete via JSearch RapidAPI.",
+      count: jobs.length,
+      jobs
+    });
   } catch (err) {
-    console.error("[Admin] Search & Email failed:", err);
-    res.status(500).json({ message: "Search & Email pipeline failed", error: err.message });
+    console.error("[Admin] Search failed:", err);
+    res.status(500).json({ message: "Search pipeline failed", error: err.message });
   }
 });
 
-// POST /admin/ingest-from-email — read project email and store to MongoDB
-router.post("/ingest-from-email", adminAuth, async (req, res) => {
+// POST /admin/ingest-jobs — trigger direct JSearch RapidAPI ingestion into MongoDB
+router.post("/ingest-jobs", adminAuth, async (req, res) => {
   try {
-    console.log("[Admin] Triggered manual email inbox ingestion pipeline.");
-    const result = await ingestJobsFromProjectInbox();
+    console.log("[Admin] Triggered manual JSearch job ingestion pipeline.");
+    const result = await ingestJobsFromJSearch();
     res.json({
-      message: "Inbox ingestion completed successfully.",
+      message: "JSearch RapidAPI ingestion completed successfully.",
       result
     });
   } catch (err) {
-    console.error("[Admin] Email ingestion failed:", err);
-    res.status(500).json({ message: "Email ingestion pipeline failed", error: err.message });
+    console.error("[Admin] JSearch ingestion failed:", err);
+    res.status(500).json({ message: "JSearch ingestion failed", error: err.message });
   }
 });
 
-// POST /admin/send-digest — manually trigger email digest to all users
-router.post("/send-digest", adminAuth, async (req, res) => {
+// GET /admin/stats — fetch live database stats (total jobs, latest jobs, breakdown by experienceLevel)
+router.get("/stats", adminAuth, async (req, res) => {
   try {
-    await sendDailyDigestToAllUsers();
-    res.json({ message: "Daily digest sent to all eligible users" });
+    const Job = require("../models/Job");
+    const totalJobs = await Job.countDocuments();
+    const jsearchJobs = await Job.countDocuments({ source: "jsearch" });
+    const latestJobs = await Job.find().sort({ createdAt: -1 }).limit(8);
+
+    const internCount = await Job.countDocuments({ experienceLevel: "intern" });
+    const fresherCount = await Job.countDocuments({ experienceLevel: "fresher" });
+    const professionalCount = await Job.countDocuments({ experienceLevel: "professional" });
+
+    res.json({
+      totalJobs,
+      jsearchJobs,
+      breakdown: {
+        intern: internCount,
+        fresher: fresherCount,
+        professional: professionalCount
+      },
+      latestJobs
+    });
   } catch (err) {
-    console.error("Digest error:", err);
-    res.status(500).json({ message: "Digest sending failed", error: err.message });
+    console.error("[Admin] Stats retrieval failed:", err);
+    res.status(500).json({ message: "Failed to retrieve stats", error: err.message });
   }
 });
 

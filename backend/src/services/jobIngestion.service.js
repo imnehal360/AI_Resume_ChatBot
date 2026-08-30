@@ -1,10 +1,8 @@
 const Job = require("../models/Job");
 const { normalizeJob } = require("../utils/jobNormalizer");
-const { fetchPerplexityEmails } = require("./gmail.service");
-const { extractJobsFromText } = require("./ai/jobExtractor.service");
 const { fetchRemoteTechJobs } = require("./jsearch.service");
 
-// ─── PRIMARY: Ingest remote tech jobs from JSearch API (72hr fresh) ───────────
+// ─── PRIMARY: Ingest tech jobs from JSearch RapidAPI (72hr fresh) ─────────────
 exports.ingestJobsFromJSearch = async () => {
   const rawJobs = await fetchRemoteTechJobs();
 
@@ -39,35 +37,4 @@ exports.ingestJobsFromJSearch = async () => {
     `[Ingestion/JSearch] Done — inserted: ${inserted}, skipped: ${skipped}, errors: ${errors}`
   );
   return { inserted, skipped, errors };
-};
-
-// ─── LEGACY: Ingest jobs from Perplexity emails (Gmail-based) ─────────────────
-exports.ingestJobsFromPerplexity = async () => {
-  const emails = await fetchPerplexityEmails();
-
-  let inserted = 0;
-  let skipped = 0;
-
-  for (const emailText of emails) {
-    try {
-      const extractedJobs = await extractJobsFromText(emailText);
-
-      for (const rawJob of extractedJobs) {
-        const job = normalizeJob(rawJob);
-
-        const exists = await Job.findOne({ hash: job.hash });
-        if (exists) {
-          skipped++;
-          continue;
-        }
-
-        await Job.create(job);
-        inserted++;
-      }
-    } catch (e) {
-      console.error("[Ingestion/Perplexity] Error processing email:", e.message);
-    }
-  }
-
-  return { inserted, skipped };
 };

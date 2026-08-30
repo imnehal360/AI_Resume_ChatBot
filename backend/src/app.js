@@ -12,16 +12,15 @@ const adminRoutes = require("./routes/admin.routes");
 
 const app = express();
 
-// Apply security headers
+
 app.use(helmet());
 
-// Enable CORS for all routes
+
 app.use(cors());
 
-// Enable response compression (Gzip/Brotli)
 app.use(compression());
 
-// Parse requests
+
 app.use(express.json());
 
 // API Rate Limiting (100 requests per 15 minutes per IP)
