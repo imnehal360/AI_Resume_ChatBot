@@ -189,30 +189,7 @@ exports.getChatHistory = async (req, res) => {
 
 //////////////////////////////////////////////////////////////////////////////
 
-const { improveResumeContent } = require("../utils/ai");
 
-exports.improveResume = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { targetRole } = req.body;
-
-    const resume = await Resume.findOne({ userId });
-    if (!resume)
-      return res.status(404).json({ message: "Resume not found" });
-
-    const feedback = await improveResumeContent(resume, targetRole);
-
-    res.json({
-      message: "Resume improvement suggestions generated",
-      feedback
-    });
-  } catch (err) {
-    res.status(500).json({
-      message: "Resume improvement failed",
-      error: err.message
-    });
-  }
-};
 
 ////////////////////////////////////////////////////////////////////////////////////
 
